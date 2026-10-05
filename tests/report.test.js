@@ -10,6 +10,28 @@ const person={name:'몽글',birth:'2000-02-29',calendar:'solar',time:'09:00',unk
 const chart=extras=>calculateChart({...person,...extras});
 const share=card=>'#card='+encodeURIComponent(JSON.stringify(card));
 
+test('story examples vary with day stems and calculated work themes, with practical career steps',()=>{
+ const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
+ assert.equal(new Set(reports.map(r=>r.storyDetails.hook)).size,10);
+ assert.equal(new Set(reports.map(r=>r.storyDetails.self[0][1])).size,10);
+ for(const r of reports){
+  assert.equal(r.storyDetails.self.length,3);assert.equal(r.storyDetails.love.length,2);
+  for(const job of r.jobs)assert.equal(r.storyDetails.career[job.title].length,3);
+  assert.equal(r.storyDetails.contexts['job-seeking'].length,2);
+ }
+ const morning=makeReport(chart()),night=makeReport(chart({time:'21:00'}));
+ assert.deepEqual(morning.storyDetails.self,night.storyDetails.self);
+ assert.notDeepEqual(morning.storyDetails.office,night.storyDetails.office);
+});
+
+test('expanded stories do not infer an uncertain character or ambiguous month season, or leak through public cards',()=>{
+ assert.equal(makeReport(chart({unknown:true,boundary:'zi'})).storyDetails,undefined);
+ assert.equal(makeReport(chart({birth:'2026-02-04',unknown:true})).storyDetails.seasonExample,null);
+ const result=makeFortune(person,'saju','2026-10-05');
+ assert.ok(savedResult(result).report.storyDetails.self.length);
+ assert.equal(publicCard(result).storyDetails,undefined);assert.equal(publicCard(result).report,undefined);
+});
+
 test('a complete day-stem cycle has ten distinct stories and five available illustration assets',()=>{
  const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
  assert.equal(new Set(reports.map(r=>r.character.name)).size,10);
