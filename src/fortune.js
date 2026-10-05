@@ -59,7 +59,10 @@ function details(chart) {
   ];
 }
 export function makeFortune(person,kind='daily',day=seoulDate()) {
-  const chart=calculateChart(person),dm=chart.dayMaster;
+  return fortuneFromChart(calculateChart(person),person.name,kind,day);
+}
+function fortuneFromChart(chart,name,kind,day){
+  const dm=chart.dayMaster;
   const palette=elementCopy[dm?.element || '토'];
   let headline=dm?.char || '확인',subline=dm?dm.korean+dm.element+' · '+dm.polarity+'의 '+['나무','불','흙','금','물'][dm.elementIndex]:'시간에 따라 일간이 달라져요';
   let [title,description]=dm?stemStories[dm.index]:['출생 시간을 함께 확인해요','가능한 원국을 표시했어요. 출생 시간을 알면 더 구체적으로 계산할 수 있어요.'];
@@ -76,8 +79,15 @@ export function makeFortune(person,kind='daily',day=seoulDate()) {
     if (dm) evidence.push('내 일간 '+dm.char+'와 오늘 천간 '+todayPillar[0]+'의 관계: '+roles[0]+'.');
     if (chart.pillars[2].value) evidence.push('내 일지 '+chart.pillars[2].value[1]+'와 오늘 일지 '+todayPillar[1]+': '+branchRelation(chart.pillars[2].value[1],todayPillar[1])+'. 합·충만으로 하루의 좋고 나쁨을 판단하지 않아요.');
   }
-  return {id:kind+'-'+chartKey(chart)+'-'+day+'-'+person.name.trim(),engine:ENGINE,kind,name:person.name.trim(),date:day,headline,subline,title,description,...palette,action,chart,evidence,readings:details(chart),character:characterFor(chart),dailyScenes:scenes,...(kind==='saju'?{report:makeReport(chart)}:{}),unlocked:false};
+  return {id:kind+'-'+chartKey(chart)+'-'+day+'-'+name.trim(),engine:ENGINE,kind,name:name.trim(),date:day,headline,subline,title,description,...palette,action,chart,evidence,readings:details(chart),character:characterFor(chart),dailyScenes:scenes,...(kind==='saju'?{report:makeReport(chart)}:{}),unlocked:false};
 }
+export function makeSajuFromResult(result){
+ if(!result||result.shared||result.engine!==ENGINE||!result.chart)return null;
+ const name=result.kind==='match'?result.primaryName:result.name;
+ if(!name)return null;
+ return fortuneFromChart(result.chart,name,'saju',result.date);
+}
+
 export function makeCompatibility(a,b,relation,day=seoulDate()) {
   const chart=calculateChart(a),otherChart=calculateChart(b);
   const x=chart.pillars[2].value,y=otherChart.pillars[2].value;
@@ -92,7 +102,7 @@ export function makeCompatibility(a,b,relation,day=seoulDate()) {
   };
   const [title,description]=copy[branch],keys=[chartKey(chart),chartKey(otherChart)].sort();
   const relationAdvice={'연인':'서로 바라는 애정 표현을 한 문장씩 나눠보세요.','친구':'함께 편안한 약속의 빈도를 이야기해보세요.','전 애인':'합·충은 재회의 신호가 아니에요. 지금의 마음과 상대의 의사를 먼저 살펴보세요.'};
-  return {id:'match-'+keys.join('~')+'-'+relation+'-'+day+'-'+a.name.trim()+'-'+b.name.trim(),engine:ENGINE,kind:'match',relation,name:a.name.trim()+' & '+b.name.trim(),date:day,headline:branch==='육합'?'六合':branch==='충'?'沖':branch==='같은 일지'?'同支':branch==='합·충 없음'?'다른 자리':'시간 확인',subline:'일지: '+branch,title,description:description+' '+(relationAdvice[relation] || relationAdvice['연인']),matchStory:makeMatchStory(chart,otherChart,relation),color:'피치 핑크',item:'함께 쓰는 메모',action:relation==='전 애인'?'내 마음과 상대의 의사 살피기':'서로 바라는 것 한 문장 나누기',chart,otherChart,evidence:[a.name.trim()+'의 일주: '+(x?x+'('+ganZhiKo(x)+')':chart.pillars[2].candidates.join(' / '))+'.',b.name.trim()+'의 일주: '+(y?y+'('+ganZhiKo(y)+')':otherChart.pillars[2].candidates.join(' / '))+'.','일간 오행 관계: '+stem+'.','일지 관계: '+branch+'. 육합 6쌍과 서로 마주 보는 충 6쌍만 비교했어요.','관계 종류는 대화 제안에만 반영해요. 사주 계산과 합·충 결과는 동일해요.'],unlocked:true};
+  return {id:'match-'+keys.join('~')+'-'+relation+'-'+day+'-'+a.name.trim()+'-'+b.name.trim(),engine:ENGINE,kind:'match',relation,primaryName:a.name.trim(),name:a.name.trim()+' & '+b.name.trim(),date:day,headline:branch==='육합'?'六合':branch==='충'?'沖':branch==='같은 일지'?'同支':branch==='합·충 없음'?'다른 자리':'시간 확인',subline:'일지: '+branch,title,description:description+' '+(relationAdvice[relation] || relationAdvice['연인']),matchStory:makeMatchStory(chart,otherChart,relation),color:'피치 핑크',item:'함께 쓰는 메모',action:relation==='전 애인'?'내 마음과 상대의 의사 살피기':'서로 바라는 것 한 문장 나누기',chart,otherChart,evidence:[a.name.trim()+'의 일주: '+(x?x+'('+ganZhiKo(x)+')':chart.pillars[2].candidates.join(' / '))+'.',b.name.trim()+'의 일주: '+(y?y+'('+ganZhiKo(y)+')':otherChart.pillars[2].candidates.join(' / '))+'.','일간 오행 관계: '+stem+'.','일지 관계: '+branch+'. 육합 6쌍과 서로 마주 보는 충 6쌍만 비교했어요.','관계 종류는 대화 제안에만 반영해요. 사주 계산과 합·충 결과는 동일해요.'],unlocked:true};
 }
 export function publicCard(result) {
   const card={kind:result.kind,name:result.name,title:result.title,description:result.description,date:result.date,color:result.color,item:result.item,action:result.action,relation:result.relation};
