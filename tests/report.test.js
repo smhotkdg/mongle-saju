@@ -11,6 +11,23 @@ const person={name:'몽글',birth:'2000-02-29',calendar:'solar',time:'09:00',unk
 const chart=extras=>calculateChart({...person,...extras});
 const share=card=>'#card='+encodeURIComponent(JSON.stringify(card));
 
+test('all ten report types use complete verdicts and job sentences without asserting uncertain work themes',()=>{
+ const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
+ assert.equal(new Set(reports.map(r=>r.persona.type)).size,10);
+ for(const r of reports){
+  assert.match(r.persona.intro,/타입입니다/);
+  for(const job of r.jobs){assert.match(job.scene,/다\.$/);assert.doesNotMatch(job.scene,/장면|떠올려/);}
+  for(const key of ['money','wealth','family','health','love']){
+   assert.doesNotMatch(r.lifeReadings[key].story,/떠올려|장면/);
+   assert.match(r.lifeReadings[key].title,/타입|형입니다/);
+  }
+ }
+ const uncertain=makeReport(chart({birth:'2026-02-04',unknown:true}));
+ assert.equal(uncertain.theme.generic,true);
+ assert.match(uncertain.theme.hook,/확정하지/);
+ assert.match(uncertain.lifeReadings.money.insight,/일반 예시/);
+});
+
 test('life readings cover six domains, vary by real chart symbols and preserve unknown-hour limits',()=>{
  const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
  assert.equal(new Set(reports.map(r=>r.lifeReadings.love.title)).size,10);

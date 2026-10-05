@@ -1,9 +1,10 @@
 import { tenGod, ganZhiKo } from './manse.js';
 import { guardianFor } from './guardians.js';
 import { makeStoryDetails } from './storyDetails.js';
+import { personaVoice, workVoice } from './readingVoice.js';
 import { makeLifeReadings } from './lifeReadings.js';
 
-export const REPORT_VERSION = 6;
+export const REPORT_VERSION = 7;
 export const ART_KEYS = ['wood','fire','earth','metal','water'];
 export const ART_LABELS = ['아이디어 정원을 가꾸는 햄스터','이야기를 만드는 햄스터','작업실을 돌보는 햄스터','작은 별을 다듬는 햄스터','달빛 아래 탐험하는 햄스터'];
 
@@ -52,10 +53,10 @@ const SEASONS = {
   丑:['겨울에서 봄으로','축적한 것을 작은 실행으로 옮기는 장면','준비가 충분한 한 가지를 골라 작게 시작해보세요.']
 };
 const CONTEXTS = [
-  ['working','회사 생활','내 역할이 자꾸 늘어나는 주간','회의가 끝나면 남아 있는 일이 내 앞으로 모이는 상황을 떠올려보세요. 잘하는 일을 더 맡게 되는 것과, 합의 없이 일이 늘어나는 것은 구분할 수 있어요.','이번 주에 내가 맡은 일 세 가지와 필요한 지원 한 가지를 적어보기'],
+  ['working','회사 생활','내 역할이 자꾸 늘어나는 주간','업무에서는 잘하는 일이 반복해서 배정되는 타입입니다. 능력으로 맡은 일과 담당자가 없어 넘어온 일을 구분해야 합니다. 역할과 지원이 정해져야 강점이 실제 성과로 남습니다.','이번 주에 내가 맡은 일 세 가지와 필요한 지원 한 가지를 적어보기'],
   ['job-seeking','취업 준비','내 경험을 한 문장으로 꺼내는 날','“특별한 경험이 없다”는 생각이 들면 직함보다 실제로 해결한 작은 문제를 찾아보세요. 상황, 내가 한 행동, 달라진 결과를 나누어 적으면 경험이 조금 더 선명해져요.','소개할 경험 하나를 상황 → 행동 → 결과의 세 줄로 써보기'],
-  ['changing','이직 고민','직무 이름보다 하루의 모습을 보는 날','새로운 직무의 이름이 멋져 보일 때, 그 일을 하는 평범한 하루를 구체적으로 그려보세요. 조사·설명·조율·반복 관리 중 어떤 작업이 많은지 실제 경험과 함께 확인해보세요.','관심 직무의 일상 업무를 찾아 내 경험과 닮은 일 두 가지 적기'],
-  ['freelance','프리랜서','다정함에도 범위가 필요한 날','“이것만 조금 더”라는 요청이 이어지는 장면을 떠올려보세요. 친절함을 지키면서도 결과물의 범위와 수정 횟수, 확인 날짜를 먼저 정할 수 있어요.','요청을 받을 때 결과물·범위·확인 날짜를 세 줄로 정리하기'],
+  ['changing','이직 고민','직무 이름보다 하루의 모습을 보는 날','이직에서는 직무 이름보다 반복하는 업무가 중요합니다. 조사·설명·조율·반복 관리 중 어떤 작업이 많은지 실제 경험과 함께 확인해보세요.','관심 직무의 일상 업무를 찾아 내 경험과 닮은 일 두 가지 적기'],
+  ['freelance','프리랜서','다정함에도 범위가 필요한 날','추가 수정이 쌓이면 원래 정한 업무와 실제 수고가 달라집니다. 이 타입의 강점을 수입으로 연결하려면 결과물·수정 횟수·확인 날짜를 먼저 명시해야 합니다.','요청을 받을 때 결과물·범위·확인 날짜를 세 줄로 정리하기'],
   ['student','학생·학습','잘 이해한 것을 내 언어로 바꾸는 날','오래 앉아 있는 시간보다 무엇을 이해했고 무엇이 막혔는지 살펴보세요. 남에게 짧게 설명하거나 실제 예시를 만들면 지금의 이해를 확인할 수 있어요.','오늘 배운 것 하나를 처음 듣는 사람에게 설명할 세 문장으로 써보기']
 ];
 
@@ -74,12 +75,19 @@ export function workTheme(chart) {
   const tied=GROUPS.filter((_,i)=>counts[i]===max);
   const monthRole=relations.find(r=>r.pillar==='월주')?.role;
   const group=tied.find(g=>g.roles.includes(monthRole)) || tied[0];
-  return {...group,...(max===0?{label:'시간 확인 전 · 협업 탐색 예시'}:{}),generic:max===0,relations,counts,method:max>0?'다른 기둥의 확정된 천간 십성을 같은 비중으로 묶었어요. 동률이면 월주 천간 관계를 먼저 살펴봐요.':'다른 천간을 확정할 수 없어 일의 장면을 일반적인 탐색 예시로 보여줘요.'};
+  return {...group,...(max===0?{label:'시간 확인 전 · 협업 탐색 예시'}:{}),generic:max===0,relations,counts,method:max>0?'다른 기둥의 확정된 천간 십성을 같은 비중으로 묶었어요. 동률이면 월주 천간 관계를 먼저 살펴봐요.':'다른 천간을 확정할 수 없어 일반적인 탐색·업무 예시를 제공합니다.'};
 }
+function completeJobSentence(text) {
+ const endings={'만드는 장면':'만듭니다.','바꾸는 장면':'바꿉니다.','붙이는 장면':'붙입니다.','쓰는 장면':'씁니다.','관리하는 장면':'관리합니다.','정리하는 장면':'정리합니다.','맞추는 장면':'맞춥니다.','다듬는 장면':'다듬습니다.','그리는 장면':'그립니다.','설명하는 장면':'설명합니다.'};
+ for(const [from,to] of Object.entries(endings))if(text.endsWith(from))return text.slice(0,-from.length)+to;
+ return text.replace(/ 장면$/, ' 업무입니다.');
+}
+
 export function makeReport(chart) {
   const dm=chart.dayMaster;
   if(!dm) return {version:REPORT_VERSION,uncertain:true,title:'출생 시간을 확인하면 이야기가 더 선명해져요',note:'일간 후보가 여러 개라 하나의 캐릭터나 직무 이야기를 정하지 않았어요. 아래 원국 후보를 확인하고 출생 시간을 알게 되면 다시 계산해주세요.'};
-  const persona=PERSONAS[dm.index],theme=workTheme(chart),month=chart.pillars[1];
+  const persona={...PERSONAS[dm.index],...personaVoice(dm.index)},theme=workTheme(chart),month=chart.pillars[1];
+  const voice=theme.generic?{hook:'업무 테마는 아직 확정하지 않았습니다.',office:'확정된 다른 천간이 없어 협업 업무를 일반 예시로 제공합니다. 출생 시간이 확인되면 업무 테마가 달라질 수 있습니다.'}:workVoice(theme.id);
   const max=Math.max(...chart.elements.map(e=>e.max));
   const most=chart.elements.filter(e=>e.min===e.max&&e.max===max).map(e=>`${e.name} ${e.max}개`);
   const zero=chart.elements.filter(e=>e.max===0).map(e=>e.name);
@@ -87,7 +95,7 @@ export function makeReport(chart) {
   const countsText=chart.elements.map(e=>`${e.name} ${e.min===e.max?e.min:`${e.min}~${e.max}`}개`).join(' · ');
   const rolesText=theme.relations.map(r=>`${r.pillar} ${r.stem} → ${r.role}`).join(' · ') || '확정된 다른 천간 관계 없음';
   return {
-    version:REPORT_VERSION,character:characterFor(chart),persona,theme,guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),lifeReadings:makeLifeReadings(chart,theme),
+    version:REPORT_VERSION,character:characterFor(chart),persona,theme:{...theme,hook:voice.hook},guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),lifeReadings:makeLifeReadings(chart,theme),
     tinyScene:[
       '다들 아직 고민 중인데 벌써 새 노트 첫 장에 프로젝트 이름을 써둔 햄스터. 시작 버튼은 빠르게, 물 주기는 꾸준하게!',
       '“어디든 좋아!”라고 말했지만 사실 조용한 창가 자리와 예쁜 컵을 살짝 기대하는 햄스터. 오늘은 취향도 꽃다발에 넣어주세요.',
@@ -102,12 +110,12 @@ export function makeReport(chart) {
     ][dm.index],
     anchors:[`${dm.char}(${dm.korean}${dm.element}) 일간`,`${month.value?`${month.value}(${month.korean}) 월주`:'월주 후보 있음'}`,theme.label],
     strengths:[...persona.tags.slice(0,2),theme.strength],
-    contexts:CONTEXTS.map(([id,label,title,story,action])=>({id,label,title,story,action,personal:`${theme.label}의 이야기로 읽으면, ${theme.work}에 관심을 두고 이 장면을 살펴볼 수 있어요. ${theme.experiment}`})),
-    jobs:theme.jobs.map(([title,task,scene])=>({title,task,scene,connection:`${theme.work}이라는 공통점을 가진 직무 예시예요. 일간의 ‘${persona.tags[0]}’ 상징도 함께 떠올려보세요.`})),
-    office:{title:'회의가 끝난 뒤의 나',story:theme.office,say:theme.say,watch:theme.risk},
+    contexts:CONTEXTS.map(([id,label,title,story,action])=>({id,label,title,story,action,personal:`${voice.hook} 핵심 업무는 ${theme.work}입니다. ${theme.experiment}`})),
+    jobs:theme.jobs.map(([title,task,scene])=>({title,task,scene:completeJobSentence(scene),connection:`${theme.work}이라는 공통점을 가진 직무 예시예요. 일간에서 읽는 ‘${persona.tags[0]}’와도 연결됩니다.`})),
+    office:{title:'회사에서 드러나는 업무 타입',story:voice.office,say:theme.say,watch:theme.risk},
     love:{title:'가까운 사이에서 편안해지는 법',story:persona.love,say:persona.dialogue,boundary:persona.boundary},
-    money:{title:MONEY[dm.elementIndex][0],story:MONEY[dm.elementIndex][1],action:MONEY[dm.elementIndex][2]},
-    season:{title:season?`${season[0]}에 태어난 원국`:'계절의 자리는 시간을 더 확인해요',story:season?`${month.value}(${month.korean})의 월지는 ${season[0]}을 나타내요. 전통의 계절 상징을 일상에 옮기면 ‘${season[1]}’이라는 이야기로 읽어볼 수 있어요.`:`월주는 ${month.candidates.map(v=>`${v}(${ganZhiKo(v)})`).join(' 또는 ')}예요. 절입 전후에 따라 계절의 자리가 달라져서 한 가지 장면으로 정하지 않았어요.`,action:season?season[2]:'정확한 출생 시각을 알게 되면 계절의 이야기도 다시 읽어주세요.'},
+    money:{...makeLifeReadings(chart,theme).money},
+    season:{title:season?`${season[0]}에 태어난 원국`:'계절의 자리는 시간을 더 확인해요',story:season?`${month.value}(${month.korean})의 월지는 ${season[0]}을 나타내요. 전통의 계절 상징을 일상에 옮기면 ‘${season[1].replace(/ 장면$/, " 성향")}’의 상징으로 풀이합니다.`:`월주는 ${month.candidates.map(v=>`${v}(${ganZhiKo(v)})`).join(' 또는 ')}예요. 절입 전후에 따라 계절의 자리가 달라져서 한 가지 계절로 확정하지 않았습니다.`,action:season?season[2]:'정확한 출생 시각을 알게 되면 계절의 이야기도 다시 읽어주세요.'},
     balance:{title:most.length?`원국에서 자주 보이는 글자 · ${most.join(', ')}`:'원국의 오행을 함께 읽어요',text:`${countsText}. ${zero.length?`표면의 여덟 글자에는 ${zero.join('·')}의 대표 오행이 보이지 않아요. 이것이 해당 능력이나 성격이 없다는 뜻은 아니에요. `:''}개수를 성격 점수로 바꾸거나, 많은 오행을 무조건 좋은 기운으로 판단하지 않아요. 이 리포트에서는 관찰을 위한 배경으로 사용해요.`},
     plan:[{day:1,title:'내 리듬 발견',action:'최근 편안했던 일 한 가지와 힘들었던 일 한 가지를 적어보기'},{day:2,title:'강점이 나온 순간',action:`‘${persona.tags[0]}’과 닮은 실제 경험 하나를 세 줄로 써보기`},{day:3,title:'일의 방식 실험',action:theme.experiment},{day:4,title:'관계 한 문장',action:`가까운 사람에게 “${persona.dialogue}”처럼 내 마음을 구체적으로 말해보기`},{day:5,title:'선택을 가볍게',action:MONEY[dm.elementIndex][2]},{day:6,title:'쉬는 방식 바꾸기',action:persona.reset},{day:7,title:'나만의 사용설명서',action:'나에게 맞았던 행동 두 가지와 맞지 않았던 행동 하나를 남겨보기'}],
     basis:{character:`일간 ${dm.char}의 음양·오행 상징으로 10종 캐릭터 중 하나를 골랐어요.`,work:`${rolesText}. ${theme.method} 이 분류는 적성 점수나 직업 적합성 검사가 아니에요.`,season:`${month.value?`${month.value}(${month.korean})`:month.candidates.join(' / ')} 월지의 계절 상징을 사용했어요.`,scope:chart.unknown?'출생 시간이 없어 시주를 제외한 풀이예요. 시간을 알면 일의 테마와 오행 분포가 달라질 수 있어요.':'일간·확정된 다른 천간의 십성·월지·대표 오행 개수만 사용했어요. 종합적인 용신·대운 감정은 포함하지 않아요.'}
@@ -119,9 +127,9 @@ export function makeMatchStory(a,b,relation) {
   if(!ca || !cb)return null;
   const pa=PERSONAS[a.dayMaster.index],pb=PERSONAS[b.dayMaster.index];
   return {characters:[ca,cb],cards:[
-    {title:'약속을 잡는 장면',text:`한 사람은 ‘${pa.tags[0]}’, 다른 사람은 ‘${pb.tags[0]}’의 상징을 가진 캐릭터로 읽어요. 어디에 갈지 고르기 전에 조용히 쉬고 싶은지, 새로운 것을 해보고 싶은지 각각 말해보세요.`,say:'오늘 원하는 분위기를 한 가지씩 말하고 같이 골라보자.'},
-    {title:'답장이 늦어진 장면',text:'연락이 늦다는 사실과 그 이유에 대한 추측을 나누어 보세요. 두 캐릭터의 방식이 달라도 마음을 읽는 능력을 시험하기보다, 가능한 연락 시간과 편안한 빈도를 함께 정할 수 있어요.',say:'바쁠 때는 나중에 이야기할 시간을 알려주면 내가 더 편할 것 같아.'},
-    {title:relation==='전 애인'?'지난 대화를 돌아보는 장면':'서운함을 말하는 장면',text:relation==='전 애인'?'사주 속 합·충은 상대의 현재 마음을 알려주지 않아요. 연락 여부를 정하기 전에 내가 바라는 것과 상대가 표현했던 경계를 각각 적어보세요. 응답이나 재회를 예상하는 대신 지금 내 일상을 편하게 만드는 선택을 살펴보세요.':'상대의 성격 전체를 말하기보다 실제 있었던 일 하나와 내가 느낀 마음을 나누어보세요. 누가 더 맞는지 겨루기보다 다음에 다르게 해볼 행동 한 가지를 정해보는 장면이에요.',say:relation==='전 애인'?'내가 지금 확인할 수 있는 사실과 혼자 기대한 것은 무엇일까?':'그때 이런 일이 있었고 나는 이렇게 느꼈어. 다음에는 이렇게 해보면 어떨까?'}
+    {title:'약속을 정하는 방식',text:`한 사람은 ‘${pa.tags[0]}’, 다른 사람은 ‘${pb.tags[0]}’의 상징을 가진 캐릭터로 읽어요. 어디에 갈지 고르기 전에 조용히 쉬고 싶은지, 새로운 것을 해보고 싶은지 각각 말해보세요.`,say:'오늘 원하는 분위기를 한 가지씩 말하고 같이 골라보자.'},
+    {title:'연락 속도가 다른 이유',text:'연락이 늦다는 사실과 그 이유에 대한 추측을 나누어 보세요. 두 캐릭터의 방식이 달라도 마음을 읽는 능력을 시험하기보다, 가능한 연락 시간과 편안한 빈도를 함께 정할 수 있어요.',say:'바쁠 때는 나중에 이야기할 시간을 알려주면 내가 더 편할 것 같아.'},
+    {title:relation==='전 애인'?'지난 관계의 핵심':'갈등을 다루는 방식',text:relation==='전 애인'?'사주 속 합·충은 상대의 현재 마음을 알려주지 않아요. 연락 여부를 정하기 전에 내가 바라는 것과 상대가 표현했던 경계를 각각 적어보세요. 응답이나 재회를 예상하는 대신 지금 내 일상을 편하게 만드는 선택을 살펴보세요.':'상대의 성격 전체를 말하기보다 실제 있었던 일 하나와 내가 느낀 마음을 나누어보세요. 누가 더 맞는지 겨루기보다 다음에 다르게 해볼 행동 한 가지를 정하는 것이 핵심입니다.',say:relation==='전 애인'?'내가 지금 확인할 수 있는 사실과 혼자 기대한 것은 무엇일까?':'그때 이런 일이 있었고 나는 이렇게 느꼈어. 다음에는 이렇게 해보면 어떨까?'}
   ]};
 }
 
@@ -129,14 +137,14 @@ export function dailyScenes(role,chart) {
   const scenes={
     비견:['내 의견을 말할 차례가 오면','다른 사람의 말에 바로 맞추기보다 내 생각을 한 문장으로 먼저 정리해보세요. 비슷한 의견이 있어도 이유를 나누면 대화가 더 구체적이 돼요.','나는 이 부분을 중요하게 생각해. 너는 어떤 조건이 더 중요해?'],
     겁재:['동료나 친구와 일을 나누게 되면','함께할 수 있다는 반가움과 내가 맡을 수 있는 범위를 같이 살펴보세요. 누구의 일인지 모호한 부분은 시작 전에 정리해보세요.','나는 여기까지 맡을 수 있어. 나머지는 어떻게 나누면 좋을까?'],
-    식신:['작은 결과물을 만들 시간이 생기면','책상 정리, 짧은 초안, 간단한 요리처럼 끝을 볼 수 있는 일 하나를 골라보세요. 크게 잘하는 날보다 작은 완성을 하나 남기는 장면으로 읽어보세요.','오늘은 이 한 가지를 끝내면 충분하다고 정해보자.'],
+    식신:['작은 결과물을 만들 시간이 생기면','책상 정리, 짧은 초안, 간단한 요리처럼 끝을 볼 수 있는 일 하나를 골라보세요. 크게 잘하는 날보다 작은 결과물을 완성하는 것이 핵심입니다.','오늘은 이 한 가지를 끝내면 충분하다고 정해보자.'],
     상관:['익숙한 방식이 답답하게 느껴지면','새 아이디어를 바로 정답처럼 말하기보다 비교할 작은 예시를 보여주세요. 다른 방법을 제안하면서도 상대가 지키고 싶은 조건을 먼저 들어보세요.','다른 방식도 한 번 작은 예시로 만들어볼까?'],
     편재:['새로운 제안이 눈에 들어오면','좋아 보이는 기회마다 일정을 채우기 전에 지금 가진 시간과 에너지를 함께 살펴보세요. 얻고 싶은 경험과 실제 필요한 일을 각각 적어보세요.','좋은 제안 같아. 지금 일정과 맞는지 확인한 뒤 이야기할게.'],
     정재:['할 일이 많아 우선순위가 흐려지면','반복되는 일과 오늘 꼭 마칠 일을 나누어 적어보세요. 하나를 마쳤다면 다음 일로 급히 넘어가기 전에 무엇이 끝났는지 확인해보세요.','오늘 꼭 필요한 것부터 하나씩 확인해보자.'],
     편관:['갑자기 요청이나 마감이 가까워지면','긴장되는 일을 혼자 끌어안기보다 먼저 범위와 완료 기준을 물어보세요. 도움을 받을 한 부분을 정하면 일을 시작하기가 쉬워질 수 있어요.','가장 중요한 완료 조건과 도움받을 부분을 먼저 맞추고 싶어요.'],
     정관:['약속이나 규칙을 정해야 한다면','좋은 약속은 엄격하기만 한 약속이 아니라 실제로 지킬 수 있는 약속이에요. 내 일정과 상대의 상황을 함께 확인하고 범위를 정해보세요.','서로 지킬 수 있는 시간과 방식으로 정해보자.'],
     편인:['궁금한 주제가 자꾸 떠오르면','한 번에 여러 자료를 열기보다 오늘 답하고 싶은 질문 하나를 골라보세요. 읽은 내용을 내 말로 세 줄만 남기면 호기심이 작은 결과로 이어져요.','지금 가장 궁금한 질문 하나부터 찾아보자.'],
-    정인:['설명을 듣거나 도움받을 때가 오면','모르는 것을 바로 숨기기보다 어떤 부분부터 이해가 안 됐는지 말해보세요. 도움을 받는 일과 스스로 할 수 있는 일을 함께 정리하는 장면으로 읽어보세요.','여기까지는 이해했는데 다음 부분을 예시로 설명해줄 수 있어?']
+    정인:['설명을 듣거나 도움받을 때가 오면','모르는 것을 바로 숨기기보다 어떤 부분부터 이해가 안 됐는지 말해보세요. 도움을 받는 일과 스스로 할 수 있는 일을 분명하게 나누는 것이 핵심입니다.','여기까지는 이해했는데 다음 부분을 예시로 설명해줄 수 있어?']
   };
   const copy=scenes[role];
   if(!copy)return null;

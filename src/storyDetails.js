@@ -1,3 +1,4 @@
+import {personaVoice,workVoice} from './readingVoice.js';
 // Authored examples selected from the calculated day stem and work theme.
 // They are conversation prompts, not predictions of actual events.
 const PERSON = [
@@ -124,7 +125,8 @@ export function makeStoryDetails(chart,themeId) {
  const dm=chart?.dayMaster;
  if(!dm||!Number.isInteger(dm.index)||!PERSON[dm.index])return null;
  const person=PERSON[dm.index],work=WORK[themeId]||WORK.peer;
+ const voice=personaVoice(dm.index),jobVoice=workVoice(themeId);
  const monthBranch=chart.pillars?.[1]?.value?.[1];
  const seasonGroup=monthBranch?'寅卯辰'.includes(monthBranch)?0:'巳午未'.includes(monthBranch)?1:'申酉戌'.includes(monthBranch)?2:3:null;
- return {hook:person.hook,insight:person.insight,self:person.self,love:person.love,office:work.examples,workHook:work.hook,contexts:CONTEXT,career:CAREER,daily:DAILY[dm.elementIndex],loveHook:'가까운 사이일수록, 말하지 않은 마음의 빈칸을 같이 채워요.',dailyHook:'장바구니보다 먼저 열어볼 것, 오늘의 내 마음.',seasonExample:seasonGroup===null?null:['새 계획의 첫 단계를 작게 정해봐요. “언젠가 시작” 대신 오늘 첫 문장만 적는 식으로요.','결과물을 한 사람에게 먼저 보여줘요. 크게 발표하지 않아도 작은 피드백은 받을 수 있어요.','잘됐던 과정을 사진이나 메모로 남겨봐요. 다음에 다시 쓸 작은 안내서가 돼요.','메모를 세 줄로 줄여 믿을 만한 사람에게 나눠봐요. 혼자 쌓은 생각도 대화 속에서 새 길을 찾을 수 있어요.'][seasonGroup]};
+ return {hook:`당신은 ${voice.type}입니다.`,insight:voice.intro.split(". ").slice(0,2).join(". ")+".",self:person.self,love:person.love,office:work.examples,workHook:themeId?jobVoice.hook:'업무 테마를 확인하려면 출생 시간이 필요합니다.',contexts:CONTEXT,career:CAREER,daily:DAILY[dm.elementIndex],loveHook:voice.love.split('. ')[0]+'.',dailyHook:'소비의 기준에서도 당신의 성향이 드러납니다.',seasonExample:seasonGroup===null?null:['새 계획의 첫 단계를 작게 정해봐요. “언젠가 시작” 대신 오늘 첫 문장만 적는 식으로요.','결과물을 한 사람에게 먼저 보여줘요. 크게 발표하지 않아도 작은 피드백은 받을 수 있어요.','잘됐던 과정을 사진이나 메모로 남겨봐요. 다음에 다시 쓸 작은 안내서가 돼요.','메모를 세 줄로 줄여 믿을 만한 사람에게 나눠봐요. 혼자 쌓은 생각도 대화 속에서 새 길을 찾을 수 있어요.'][seasonGroup]};
 }
