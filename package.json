@@ -1,0 +1,26 @@
+{
+  "name": "mongle-saju",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:hmr": "vite --configLoader native --host 127.0.0.1",
+    "build": "vite build --configLoader native",
+    "preview": "vite preview --configLoader native --host 127.0.0.1",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "korean-lunar-calendar": "0.4.0",
+    "lucide-react": "^0.468.0",
+    "lunar-javascript": "1.7.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@vitejs/plugin-react": "^5.0.3",
+    "tailwindcss": "^4.1.13",
+    "vite": "^7.1.7"
+  }
+}
