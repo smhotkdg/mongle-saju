@@ -46,10 +46,10 @@ pnpm dev
 - 한국 양력·음력 변환, 평달·윤달 선택. 없는 윤달은 왕복 변환 검증으로 거절합니다.
 - 실제 년주·월주·일주·시주, 일간, 천간·지지 대표 오행 개수.
 - 시간 미상일 때 시주를 만들지 않습니다. 절기·일주 경계일은 가능한 원국 후보와 오행 개수 범위를 표시합니다.
-- 기본 사주 결과 → 990원 데모 해금 화면 → 9개 챕터의 개인 리포트. 10가지 일간 캐릭터와 5종 오행 삽화, 강점·에너지 패턴, 직무 예시 3가지, 회사 대화·관계·생활 습관·계절 이야기, 체크 가능한 7일 실험을 제공합니다.
+- 기본 사주 결과 → 990원 데모 해금 화면 → 14개 챕터의 개인 리포트. 10가지 일간 캐릭터와 5종 오행 삽화, 강점·에너지 패턴, 직무 예시 3가지, 회사 대화·관계·생활 습관·계절 이야기, 체크 가능한 7일 실험을 제공합니다.
 - 부적 도감: 마음 지킴 5종과 새출발·집중·용기·인연·휴식의 하루 응원 5종을 모읍니다. 1회 데모 해금에 10종 모두 포함하며, 세트 완성 배지 3개와 대표 부적 선택, 도감에서 PNG 카드 저장을 제공합니다.
 - 나를 대하는 사용설명서: 친구·연인·동료용 대화 카드 3종. 실제 원국에 따라 선택한 리포트 문장을 담아 1080 × 1350 PNG로 저장하며, 결제 전에도 개인화된 예시를 보여줍니다.
-- 상세 사주 읽기: 핵심 요약 3줄, 9개 챕터 목차 이동, 전체 펼치기·접기, 본문 16px·18px 선택, 어두운 글자와 넉넉한 줄 간격.
+- 상세 사주 읽기: 핵심 요약 3줄, 14개 챕터 목차 이동, 전체 펼치기·접기, 본문 16px·18px 선택, 어두운 글자와 넉넉한 줄 간격.
 - 장면으로 읽는 사주: 일간별 일상 30개·관계 20개, 일의 테마별 회사 15개, 상황별 10개, 생활 선택 10개 등 총 85개의 창작 예시 중 해당 리포트의 12개를 보여줍니다. 각 장면에는 바로 꺼내볼 대화 문장이 있습니다. 15개 직무별 아침·오후·결과물 예시도 제공합니다.
 - 긴 본문을 두 문장씩 나누고, 장 사이에 짧은 관찰 문장과 발견 카드를 배치했습니다. 모바일 상세 액운막기는 그림·설명을 세로로 배치하고 테마 선택을 3열로 보여줍니다.
 - 취업 준비·회사 생활·이직 고민·프리랜서·학생 상황을 직접 선택해 구체적인 장면과 행동 제안을 읽습니다. 원국의 다른 천간 십성에 따라 직무 예시와 일의 테마가 달라집니다. 일간을 확정할 수 없으면 개인 캐릭터를 만들지 않으며, 다른 천간이 모두 불확실하면 직무를 일반 탐색 예시로 표시합니다.
@@ -93,6 +93,7 @@ pnpm dev
 - `src/guardians.js`, `src/GuardianCharm.jsx`, `src/guardian.css`: 부적 10종 데이터, 결제 전 미리보기, 상세 이야기·실천법·응원 도장·PNG 부적 카드.
 - `src/CharmCollection.jsx`, `src/charmCollection.js`, `src/collection.css`: 부적 도감·브라우저 저장·대표 부적·세트 배지.
 - `src/ManualCard.jsx`, `src/manual.js`, `src/manual.css`: 친구·연인·동료용 사용설명서와 PNG 생성.
+- `src/lifeReadings.js`, `src/LifeChapter.jsx`, `src/life-readings.css`: 금전·재물·연애·가정·건강·반려동물 생활 풀이와 카드.
 - `src/storyDetails.js`, `src/StoryExamples.jsx`, `src/story-examples.css`: 일간·일의 테마별 생활 예시, 직업의 하루, 대화문과 모바일 액운막기 레이아웃. 이전 보관 리포트에도 저장된 원국 기준으로 새 예시를 보여줍니다.
 - `tests/collection.test.js`: 손상된 도감 복구, 중복 수집·배지, 사용설명서 분기 및 공유 정보 분리 검증.
 - `public/guardians/`: 부적 삽화 10종. [마음 지킴 제작 기록](public/guardians/README.md), [하루 응원 전체 프롬프트](public/guardians/COLLECTION_IMAGES.md).
@@ -122,7 +123,7 @@ pnpm dev
 
 도감은 `mongle-charms-v1`에 수집한 부적의 키와 대표 부적의 키만 저장합니다. 사용설명서 대상은 보관한 리포트에 함께 저장하며, 공개 결과 링크에는 대상·부적·수집 기록·전체 리포트를 넣지 않습니다.
 
-리포트 하단에서 실제 사용한 일간·십성·월지와 해석 범위를 확인할 수 있습니다. PNG 공유 카드에도 캐릭터 삽화가 적용됩니다. 상세 리포트·부적 분기·도감·사용설명서·예시 선택과 공유 정보 검증을 포함한 전체 28개 테스트를 통과했습니다.
+리포트 하단에서 실제 사용한 일간·십성·월지와 해석 범위를 확인할 수 있습니다. PNG 공유 카드에도 캐릭터 삽화가 적용됩니다. 상세 리포트·부적 분기·도감·사용설명서·예시 선택과 공유 정보 검증을 포함한 전체 30개 테스트를 통과했습니다.
 
 ## 참고 및 제작 자산
 
@@ -135,3 +136,10 @@ pnpm dev
 > Use case: illustration-story. Asset type: website hero illustration for a cozy Korean hamster fortune teller brand. A single adorable chubby cream and golden hamster fortune teller, with rosy peach cheeks, round shiny brown eyes, a tiny lavender pointed wizard hat with a yellow star and lavender cape. Sitting behind a dusty lilac cushion, small crystal ball with peach glow, a tiny tarot card and sunflower seeds. Soft tactile pastel colored-pencil and gouache children's book illustration, subtle paper texture, delicate warm brown outlines, sophisticated cute Korean stationery aesthetic. Background solid pale warm cream #fff9ef, sparse little lavender stars and peach sparkles. Centered composition, entire hamster and props visible, square format, occupies most of canvas, no lettering or words, no watermark.
 
 Pretendard: https://github.com/orioncactus/pretendard (SIL Open Font License 1.1). 아이콘은 lucide-react입니다.
+
+## 생활 운세 확장
+- 금전운(수입·지출), 재물운(축적·관리), 연애운(솔로·커플·지난 인연), 가정운, 건강운, 반려동물 상징 매칭을 별도 챕터로 제공합니다.
+- 질문 → 쉬운 비유 → 구체적 상황 → 오늘 할 일의 순서로 읽습니다. `src/lifeReadings.js`의 5종 오행 생활 이야기·10종 일간 연애 이야기·5종 실제 십성 업무 테마를 조합합니다. 저장된 이전 리포트에도 보관된 원국으로 새 챕터를 생성합니다.
+- 용신·대운, 소득·투자 수익, 질병·수명, 결혼·재회를 계산하거나 예측하지 않습니다. 반려동물은 재미로 보는 상징 매칭이며 실제 입양 적합성 평가가 아닙니다.
+- 문체 참고: https://www.youtube.com/watch?v=KOf9DkKcHyE 의 자동 생성 한국어 자막에서 확인한 질문·쉬운 비유·생활 장면·실천의 설명 구조. 문장과 사례는 독자적으로 작성했습니다. 두 번째 영상 RDh4_BOiC7g는 자막 제공이 없어 세부 내용을 반영하지 않았습니다.
+- 반려동물 돌봄 기준 참고: RSPCA의 https://www.rspca.org.uk/findapet/advice/families 및 https://www.rspca.org.uk/adviceandwelfare/pets/rodents/hamsters .

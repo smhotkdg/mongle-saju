@@ -1,8 +1,9 @@
 import { tenGod, ganZhiKo } from './manse.js';
 import { guardianFor } from './guardians.js';
 import { makeStoryDetails } from './storyDetails.js';
+import { makeLifeReadings } from './lifeReadings.js';
 
-export const REPORT_VERSION = 5;
+export const REPORT_VERSION = 6;
 export const ART_KEYS = ['wood','fire','earth','metal','water'];
 export const ART_LABELS = ['아이디어 정원을 가꾸는 햄스터','이야기를 만드는 햄스터','작업실을 돌보는 햄스터','작은 별을 다듬는 햄스터','달빛 아래 탐험하는 햄스터'];
 
@@ -86,7 +87,7 @@ export function makeReport(chart) {
   const countsText=chart.elements.map(e=>`${e.name} ${e.min===e.max?e.min:`${e.min}~${e.max}`}개`).join(' · ');
   const rolesText=theme.relations.map(r=>`${r.pillar} ${r.stem} → ${r.role}`).join(' · ') || '확정된 다른 천간 관계 없음';
   return {
-    version:REPORT_VERSION,character:characterFor(chart),persona,theme,guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),
+    version:REPORT_VERSION,character:characterFor(chart),persona,theme,guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),lifeReadings:makeLifeReadings(chart,theme),
     tinyScene:[
       '다들 아직 고민 중인데 벌써 새 노트 첫 장에 프로젝트 이름을 써둔 햄스터. 시작 버튼은 빠르게, 물 주기는 꾸준하게!',
       '“어디든 좋아!”라고 말했지만 사실 조용한 창가 자리와 예쁜 컵을 살짝 기대하는 햄스터. 오늘은 취향도 꽃다발에 넣어주세요.',

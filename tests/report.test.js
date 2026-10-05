@@ -5,10 +5,42 @@ import {calculateChart} from '../src/manse.js';
 import {guardianFor} from '../src/guardians.js';
 import {makeReport,characterFor,makeMatchStory,ART_KEYS} from '../src/report.js';
 import {makeFortune,publicCard,parseSharedCard,savedResult} from '../src/fortune.js';
+import {makeLifeReadings} from '../src/lifeReadings.js';
 
 const person={name:'몽글',birth:'2000-02-29',calendar:'solar',time:'09:00',unknown:false,boundary:'midnight'};
 const chart=extras=>calculateChart({...person,...extras});
 const share=card=>'#card='+encodeURIComponent(JSON.stringify(card));
+
+test('life readings cover six domains, vary by real chart symbols and preserve unknown-hour limits',()=>{
+ const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
+ assert.equal(new Set(reports.map(r=>r.lifeReadings.love.title)).size,10);
+ assert.equal(new Set(reports.map(r=>r.lifeReadings.wealth.title)).size,5);
+ for(const r of reports){
+  assert.deepEqual(Object.keys(r.lifeReadings).sort(),['version','money','wealth','love','family','health','pets'].sort());
+  for(const key of ['money','wealth','love','family','health','pets']){
+   const d=r.lifeReadings[key];assert.ok(d.title&&d.story&&d.action&&d.basis&&d.note);
+  }
+  assert.equal(r.lifeReadings.pets.matches.length,2);assert.equal(r.lifeReadings.pets.checks.length,4);
+  assert.ok(r.lifeReadings.pets.matches.every(p=>p.scene&&p.care));
+ }
+ const a=makeReport(chart()),b=makeReport(chart({time:'21:00'}));
+ assert.notEqual(a.lifeReadings.money.insight,b.lifeReadings.money.insight);
+ assert.equal(a.lifeReadings.wealth.story,b.lifeReadings.wealth.story);
+ assert.equal(makeReport(chart({unknown:true,boundary:'zi'})).lifeReadings,undefined);
+ const unknown=makeReport(chart({unknown:true}));
+ assert.ok(unknown.lifeReadings.health.note.includes('진단'));
+});
+
+test('saved legacy charts can generate life chapters and private domains stay out of shared cards',()=>{
+ const result=makeFortune(person,'saju','2026-10-05');
+ const stored=JSON.parse(JSON.stringify(savedResult(result)));
+ assert.ok(stored.report.lifeReadings.family.story);
+ delete stored.report.lifeReadings;
+ assert.deepEqual(makeLifeReadings(stored.chart,stored.report.theme),result.report.lifeReadings);
+ const card=publicCard(result);
+ assert.equal(card.lifeReadings,undefined);assert.equal(card.report,undefined);
+ assert.equal(makeLifeReadings({dayMaster:null}),null);
+});
 
 test('story examples vary with day stems and calculated work themes, with practical career steps',()=>{
  const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
