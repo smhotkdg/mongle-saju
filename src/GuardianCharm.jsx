@@ -22,9 +22,9 @@ export function GuardianCharm({chart,name,selectedKey,onSelect,full=false,compac
  const uid=useId(),[localKey,setLocalKey]=useState(null),[localBlessed,setLocalBlessed]=useState(null),[card,setCard]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const charm=guardianFor(chart,selectedKey || localKey) || guardianFor(null,GUARDIANS[0].key);
  const blessed=(blessedKey || localBlessed)===charm.key;
- const [activeSet,setActiveSet]=useState(charm.set);
+ const activeSet=charm.set;
  const collected=collection.owned.includes(charm.key);
- function chooseSet(id){setActiveSet(id);select(GUARDIANS.find(g=>g.set===id).key);}
+ function chooseSet(id){select(GUARDIANS.find(g=>g.set===id).key);}
  function select(key){setLocalKey(key);onSelect?.(key);setCard(null);setError('');}
  async function download(){setBusy(true);setError('');try{setCard({key:charm.key,url:await createCharmCard(charm,name)});}catch{setError('카드를 만들지 못했어요. 잠시 후 다시 눌러주세요.');}finally{setBusy(false);}}
  return <section className={`guardian-charm ${compact?'compact':''} ${full?'full-charm':'charm-preview'} ${blessed?'blessed':''}`} aria-labelledby={`${uid}-title`} style={{'--charm-tint':charm.color}}>
