@@ -1,10 +1,11 @@
 import { tenGod, ganZhiKo } from './manse.js';
 import { guardianFor } from './guardians.js';
 import { makeStoryDetails } from './storyDetails.js';
+import {characterVariant,CHARACTER_TYPE_COUNT} from './characterTypes.js';
 import { personaVoice, workVoice } from './readingVoice.js';
 import { makeLifeReadings } from './lifeReadings.js';
 
-export const REPORT_VERSION = 7;
+export const REPORT_VERSION = 8;
 export const ART_KEYS = ['wood','fire','earth','metal','water'];
 export const ART_LABELS = ['아이디어 정원을 가꾸는 햄스터','이야기를 만드는 햄스터','작업실을 돌보는 햄스터','작은 별을 다듬는 햄스터','달빛 아래 탐험하는 햄스터'];
 
@@ -64,7 +65,8 @@ export function characterFor(chart) {
   const dm=chart.dayMaster;
   if(!dm) return null;
   const persona=PERSONAS[dm.index],key=ART_KEYS[dm.elementIndex];
-  return {key,name:persona.name,tagline:persona.tagline,image:`/characters/${key}.png`,alt:ART_LABELS[dm.elementIndex]};
+  const theme=workTheme(chart),variant=theme.generic?null:characterVariant(dm.index,theme.id);
+  return {key,id:`stem-${dm.index}-base`,name:persona.name,tagline:persona.tagline,baseName:persona.name,baseType:personaVoice(dm.index).type,variantLabel:personaVoice(dm.index).type,...variant,image:`/characters/${key}.png`,alt:ART_LABELS[dm.elementIndex]};
 }
 export function workTheme(chart) {
   const dm=chart.dayMaster;
@@ -87,6 +89,8 @@ export function makeReport(chart) {
   const dm=chart.dayMaster;
   if(!dm) return {version:REPORT_VERSION,uncertain:true,title:'출생 시간을 확인하면 이야기가 더 선명해져요',note:'일간 후보가 여러 개라 하나의 캐릭터나 직무 이야기를 정하지 않았어요. 아래 원국 후보를 확인하고 출생 시간을 알게 되면 다시 계산해주세요.'};
   const persona={...PERSONAS[dm.index],...personaVoice(dm.index)},theme=workTheme(chart),month=chart.pillars[1];
+  const character=characterFor(chart);
+  if(character.detail){persona.subtype=character.variantLabel;persona.intro=character.detail+' '+persona.intro;persona.shadow=character.watch+' '+persona.shadow;}
   const voice=theme.generic?{hook:'업무 테마는 아직 확정하지 않았습니다.',office:'확정된 다른 천간이 없어 협업 업무를 일반 예시로 제공합니다. 출생 시간이 확인되면 업무 테마가 달라질 수 있습니다.'}:workVoice(theme.id);
   const max=Math.max(...chart.elements.map(e=>e.max));
   const most=chart.elements.filter(e=>e.min===e.max&&e.max===max).map(e=>`${e.name} ${e.max}개`);
@@ -95,7 +99,7 @@ export function makeReport(chart) {
   const countsText=chart.elements.map(e=>`${e.name} ${e.min===e.max?e.min:`${e.min}~${e.max}`}개`).join(' · ');
   const rolesText=theme.relations.map(r=>`${r.pillar} ${r.stem} → ${r.role}`).join(' · ') || '확정된 다른 천간 관계 없음';
   return {
-    version:REPORT_VERSION,character:characterFor(chart),persona,theme:{...theme,hook:voice.hook},guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),lifeReadings:makeLifeReadings(chart,theme),
+    version:REPORT_VERSION,character,persona,theme:{...theme,hook:voice.hook},guardian:guardianFor(chart),storyDetails:makeStoryDetails(chart,theme.id),lifeReadings:makeLifeReadings(chart,theme),
     tinyScene:[
       '다들 아직 고민 중인데 벌써 새 노트 첫 장에 프로젝트 이름을 써둔 햄스터. 시작 버튼은 빠르게, 물 주기는 꾸준하게!',
       '“어디든 좋아!”라고 말했지만 사실 조용한 창가 자리와 예쁜 컵을 살짝 기대하는 햄스터. 오늘은 취향도 꽃다발에 넣어주세요.',
@@ -118,7 +122,7 @@ export function makeReport(chart) {
     season:{title:season?`${season[0]}에 태어난 원국`:'계절의 자리는 시간을 더 확인해요',story:season?`${month.value}(${month.korean})의 월지는 ${season[0]}을 나타내요. 전통의 계절 상징을 일상에 옮기면 ‘${season[1].replace(/ 장면$/, " 성향")}’의 상징으로 풀이합니다.`:`월주는 ${month.candidates.map(v=>`${v}(${ganZhiKo(v)})`).join(' 또는 ')}예요. 절입 전후에 따라 계절의 자리가 달라져서 한 가지 계절로 확정하지 않았습니다.`,action:season?season[2]:'정확한 출생 시각을 알게 되면 계절의 이야기도 다시 읽어주세요.'},
     balance:{title:most.length?`원국에서 자주 보이는 글자 · ${most.join(', ')}`:'원국의 오행을 함께 읽어요',text:`${countsText}. ${zero.length?`표면의 여덟 글자에는 ${zero.join('·')}의 대표 오행이 보이지 않아요. 이것이 해당 능력이나 성격이 없다는 뜻은 아니에요. `:''}개수를 성격 점수로 바꾸거나, 많은 오행을 무조건 좋은 기운으로 판단하지 않아요. 이 리포트에서는 관찰을 위한 배경으로 사용해요.`},
     plan:[{day:1,title:'내 리듬 발견',action:'최근 편안했던 일 한 가지와 힘들었던 일 한 가지를 적어보기'},{day:2,title:'강점이 나온 순간',action:`‘${persona.tags[0]}’과 닮은 실제 경험 하나를 세 줄로 써보기`},{day:3,title:'일의 방식 실험',action:theme.experiment},{day:4,title:'관계 한 문장',action:`가까운 사람에게 “${persona.dialogue}”처럼 내 마음을 구체적으로 말해보기`},{day:5,title:'선택을 가볍게',action:MONEY[dm.elementIndex][2]},{day:6,title:'쉬는 방식 바꾸기',action:persona.reset},{day:7,title:'나만의 사용설명서',action:'나에게 맞았던 행동 두 가지와 맞지 않았던 행동 하나를 남겨보기'}],
-    basis:{character:`일간 ${dm.char}의 음양·오행 상징으로 10종 캐릭터 중 하나를 골랐어요.`,work:`${rolesText}. ${theme.method} 이 분류는 적성 점수나 직업 적합성 검사가 아니에요.`,season:`${month.value?`${month.value}(${month.korean})`:month.candidates.join(' / ')} 월지의 계절 상징을 사용했어요.`,scope:chart.unknown?'출생 시간이 없어 시주를 제외한 풀이예요. 시간을 알면 일의 테마와 오행 분포가 달라질 수 있어요.':'일간·확정된 다른 천간의 십성·월지·대표 오행 개수만 사용했어요. 종합적인 용신·대운 감정은 포함하지 않아요.'}
+    basis:{character:`${theme.generic?`일간 ${dm.char}의 기본 캐릭터입니다. 확정된 다른 천간이 없어 세부 타입은 정하지 않았습니다.`:`일간 ${dm.char}의 기본 성향과 ${theme.label}의 확정된 천간 관계를 조합해 ${CHARACTER_TYPE_COUNT}종 세부 캐릭터 중 ‘${character.name}’을 골랐습니다.`}`,work:`${rolesText}. ${theme.method} 이 분류는 적성 점수나 직업 적합성 검사가 아니에요.`,season:`${month.value?`${month.value}(${month.korean})`:month.candidates.join(' / ')} 월지의 계절 상징을 사용했어요.`,scope:chart.unknown?'출생 시간이 없어 시주를 제외한 풀이예요. 시간을 알면 일의 테마와 오행 분포가 달라질 수 있어요.':'일간·확정된 다른 천간의 십성·월지·대표 오행 개수만 사용했어요. 종합적인 용신·대운 감정은 포함하지 않아요.'}
   };
 }
 

@@ -1,3 +1,4 @@
+import {characterFor} from './report.js';
 const FONT='"Mongle", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
 
 // Prefer word boundaries for Korean text; split only an oversized word.
@@ -40,6 +41,7 @@ function textBlock(ctx,text,{top,height,size,minSize=size,weight=500,width=820,c
 }
 
 export async function createCard(result){
+ const character=result.chart?characterFor(result.chart):result.character;
  await document.fonts.load(`700 36px ${FONT}`,'몽글사주 오늘의 운세');
  await document.fonts.ready;
  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
@@ -51,13 +53,13 @@ export async function createCard(result){
  textBlock(c,'몽글사주 · '+label,{top:104,height:55,size:32,weight:700,maxLines:1});
  textBlock(c,result.date,{top:164,height:40,size:25,color:'#88758b',maxLines:1});
  try{
-  const img=new Image();img.src=result.character?.image||'/hamster.png';await img.decode();
+  const img=new Image();img.src=character?.image||'/hamster.png';await img.decode();
   const scale=Math.min(340/img.naturalWidth,340/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;
   c.drawImage(img,540-w/2,380-h/2,w,h);
  }catch{textBlock(c,'🐹',{top:245,height:270,size:110,maxLines:1});}
  const name=result.kind==='match'?result.name+'의 궁합':result.name+'님의 '+(result.kind==='saju'?'사주':'오늘의 운세');
  textBlock(c,name,{top:565,height:82,size:31,minSize:26,color:'#716174'});
- const headline=result.kind==='saju'&&result.character?result.character.name:result.engine?result.headline:`${result.score}점`;
+ const headline=result.kind==='saju'&&character?character.name:result.engine?result.headline:`${result.score}점`;
  textBlock(c,headline,{top:665,height:158,size:result.kind==='saju'?58:80,minSize:38,weight:800});
  textBlock(c,result.subline||'이전 데모 결과',{top:831,height:72,size:28,minSize:24,color:'#88758b'});
  textBlock(c,result.title,{top:923,height:110,size:42,minSize:32,weight:700,color:'#554350'});

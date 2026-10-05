@@ -105,8 +105,9 @@ export function makeCompatibility(a,b,relation,day=seoulDate()) {
   return {id:'match-'+keys.join('~')+'-'+relation+'-'+day+'-'+a.name.trim()+'-'+b.name.trim(),engine:ENGINE,kind:'match',relation,primaryName:a.name.trim(),name:a.name.trim()+' & '+b.name.trim(),date:day,headline:branch==='육합'?'六合':branch==='충'?'沖':branch==='같은 일지'?'同支':branch==='합·충 없음'?'다른 자리':'시간 확인',subline:'일지: '+branch,title,description:description+' '+(relationAdvice[relation] || relationAdvice['연인']),matchStory:makeMatchStory(chart,otherChart,relation),color:'피치 핑크',item:'함께 쓰는 메모',action:relation==='전 애인'?'내 마음과 상대의 의사 살피기':'서로 바라는 것 한 문장 나누기',chart,otherChart,evidence:[a.name.trim()+'의 일주: '+(x?x+'('+ganZhiKo(x)+')':chart.pillars[2].candidates.join(' / '))+'.',b.name.trim()+'의 일주: '+(y?y+'('+ganZhiKo(y)+')':otherChart.pillars[2].candidates.join(' / '))+'.','일간 오행 관계: '+stem+'.','일지 관계: '+branch+'. 육합 6쌍과 서로 마주 보는 충 6쌍만 비교했어요.','관계 종류는 대화 제안에만 반영해요. 사주 계산과 합·충 결과는 동일해요.'],unlocked:true};
 }
 export function publicCard(result) {
+  const character=result.chart?characterFor(result.chart):result.character;
   const card={kind:result.kind,name:result.name,title:result.title,description:result.description,date:result.date,color:result.color,item:result.item,action:result.action,relation:result.relation};
-  return result.engine===ENGINE ? {...card,engine:ENGINE,headline:result.headline,subline:result.subline,...(result.character?{character:{key:result.character.key,name:result.character.name,tagline:result.character.tagline}}:{})} : {...card,score:result.score,scores:result.scores};
+  return result.engine===ENGINE ? {...card,engine:ENGINE,headline:result.headline,subline:result.subline,...(character?{character:{key:character.key,name:character.name,tagline:character.tagline}}:{})} : {...card,score:result.score,scores:result.scores};
 }
 export function savedResult(result) {
   const strip=chart=>{if (!chart) return undefined; const {solarDate,lunarDate,...rest}=chart;return rest;};

@@ -6,10 +6,34 @@ import {guardianFor} from '../src/guardians.js';
 import {makeReport,characterFor,makeMatchStory,ART_KEYS} from '../src/report.js';
 import {makeFortune,publicCard,parseSharedCard,savedResult} from '../src/fortune.js';
 import {makeLifeReadings} from '../src/lifeReadings.js';
+import {CHARACTER_TYPE_COUNT} from '../src/characterTypes.js';
 
 const person={name:'몽글',birth:'2000-02-29',calendar:'solar',time:'09:00',unknown:false,boundary:'midnight'};
 const chart=extras=>calculateChart({...person,...extras});
 const share=card=>'#card='+encodeURIComponent(JSON.stringify(card));
+
+test('all fifty character variants are reachable from real charts, stable and reflected in private and shared reports',()=>{
+ const found=new Map();
+ outer:for(const year of [2000,2001,2002,2003,2004,2005])for(let month=1;month<=12;month++)for(const day of [1,8,15,22])for(const time of ['00:00','05:00','09:00','13:00','17:00','21:00']){
+  const birth=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const c=chart({birth,time}),type=characterFor(c);
+  if(!found.has(type.id))found.set(type.id,{chart:c,type,birth,time});
+  if(found.size===50)break outer;
+ }
+ assert.equal(CHARACTER_TYPE_COUNT,50);assert.equal(found.size,50);
+ assert.equal(new Set([...found.values()].map(v=>v.type.name)).size,50);
+ assert.equal(new Set([...found.values()].map(v=>v.type.key)).size,5);
+ for(const {chart:c,type,birth,time} of found.values()){
+  assert.deepEqual(characterFor(chart({birth,time})),type);
+  const r=makeReport(c);assert.equal(r.character.id,type.id);
+  assert.ok(r.persona.intro.includes(type.detail));assert.ok(r.persona.shadow.includes(type.watch));
+  const result=makeFortune({...person,birth,time},'saju','2026-10-05');
+  const shared=parseSharedCard(share(publicCard(result)));
+  assert.equal(shared.character.name,type.name);assert.equal(shared.chart,undefined);
+ }
+ const unknown=characterFor(chart({birth:'2026-02-04',unknown:true}));
+ assert.equal(unknown.detail,undefined);assert.match(unknown.id,/-base$/);
+});
 
 test('all ten report types use complete verdicts and job sentences without asserting uncertain work themes',()=>{
  const reports=Array.from({length:10},(_,i)=>makeReport(chart({birth:`2000-03-${String(i+1).padStart(2,'0')}`})));
@@ -96,7 +120,8 @@ test('a complete day-stem cycle has ten distinct stories and five available illu
 
 test('actual hour and month stem relationships change job examples without changing a fixed day-stem character',()=>{
  const morning=makeReport(chart()),night=makeReport(chart({time:'21:00'})),laterMonth=makeReport(chart({birth:'2000-04-29'}));
- assert.equal(morning.character.name,night.character.name);assert.equal(morning.character.name,laterMonth.character.name);
+ assert.equal(morning.character.baseName,night.character.baseName);assert.equal(morning.character.baseName,laterMonth.character.baseName);
+ assert.notEqual(morning.character.id,night.character.id);assert.notEqual(morning.character.name,night.character.name);
  assert.equal(morning.theme.id,'maker');assert.equal(night.theme.id,'resource');assert.equal(laterMonth.theme.id,'resource');
  assert.notDeepEqual(morning.jobs,night.jobs);
  assert.equal(morning.theme.relations.find(r=>r.pillar==='월주').role,'상관');

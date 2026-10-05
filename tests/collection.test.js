@@ -28,7 +28,9 @@ test('set badges count distinct charms and all ten illustrations are present',()
 });
 test('manual cards follow calculated themes and preserve uncertainty',()=>{
  const morning=report(),night=report({time:'21:00'});
- assert.deepEqual(makeManual(morning,'friend'),makeManual(night,'friend'));
+ assert.equal(makeManual(morning,'friend').rows[2][1],makeManual(night,'friend').rows[2][1]);
+ assert.notEqual(makeManual(morning,'friend').character.id,makeManual(night,'friend').character.id);
+ assert.notDeepEqual(makeManual(morning,'friend').rows,makeManual(night,'friend').rows);
  assert.notDeepEqual(makeManual(morning,'work').rows,makeManual(night,'work').rows);
  assert.notDeepEqual(makeManual(morning,'friend').rows,makeManual(morning,'partner').rows);
  assert.deepEqual(makeManual(morning,'invalid'),makeManual(morning,'friend'));
