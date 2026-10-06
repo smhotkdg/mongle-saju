@@ -11,7 +11,7 @@ const chartSchema = z.object({
   elements:z.array(z.object({ name:z.enum(['목','화','토','금','수']), min:z.number().int().min(0).max(8), max:z.number().int().min(0).max(8) })).length(5),
   warnings:z.array(text).max(10),
 }).transform(chart=>({...chart,dayMaster:chart.pillars[2].value?stemInfo(chart.pillars[2].value[0]):null}));
-const resultSchema = z.object({
+export const resultSchema = z.object({
   id:z.string().min(1).max(500), kind:z.enum(['daily','saju','match']), name:z.string().max(80), title:text,
   date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/), description:text, color:text, item:text, action:text,
   engine:z.literal(ENGINE).optional(), headline:z.string().max(100).optional(), subline:text.optional(),

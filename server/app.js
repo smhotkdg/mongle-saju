@@ -5,10 +5,11 @@ import { resolve } from 'node:path';
 import { createStore, token } from './store.js';
 import { providersFromEnv, authorizationUrl, exchangeIdentity } from './providers.js';
 import { vaultSchema } from '../src/vault.js';
+import { paymentRoutes, reportKey } from './payments.js';
 
 const same = (a,b) => typeof a==='string' && typeof b==='string' && Buffer.byteLength(a)===Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const cookies = req => Object.fromEntries((req.headers.cookie||'').split(';').map(v=>v.trim().split('=')).filter(v=>v.length===2));
-export function createApi({ env=process.env, store=createStore(resolve(env.DATA_DIR||'data','mongle.sqlite')), exchange=exchangeIdentity }={}) {
+export function createApi({ env=process.env, store=createStore(resolve(env.DATA_DIR||'data','mongle.sqlite')), exchange=exchangeIdentity, paymentGateway }={}) {
   const origin = new URL(env.APP_ORIGIN || 'http://127.0.0.1:5173').origin;
   if (env.NODE_ENV==='production' && !origin.startsWith('https://')) throw new Error('Production APP_ORIGIN must use HTTPS');
   const providers = providersFromEnv(env), app = express();
@@ -60,16 +61,18 @@ export function createApi({ env=process.env, store=createStore(resolve(env.DATA_
     if(!['GET','HEAD'].includes(req.method) && (req.get('Origin')!==origin || !same(req.get('X-CSRF-Token'),user.csrf))) return res.status(403).json({error:'요청을 확인하지 못했어요. 새로고침 후 다시 시도해주세요.'});
     req.user=user;next();
   });
-  app.get('/vault',(req,res)=>res.json(store.vault(req.user.id)));
+  app.use('/payments',paymentRoutes({env,store,origin,gateway:paymentGateway}));
+  const authorizeVault=(userId,data)=>({...data,results:data.results.map(r=>({...r,unlocked:store.paidReport(userId,reportKey(r))}))});
+  app.get('/vault',(req,res)=>{const v=store.vault(req.user.id);res.json({...v,data:authorizeVault(req.user.id,v.data)});});
   app.put('/vault',(req,res)=>{
     const parsed=vaultSchema.safeParse(req.body?.data), revision=req.body?.revision;
     if(!parsed.success || !Number.isSafeInteger(revision) || revision<0) return res.status(400).json({error:'보관할 데이터 형식을 확인해주세요.'});
-    const next=store.save(req.user.id,parsed.data,revision);
+    const next=store.save(req.user.id,authorizeVault(req.user.id,parsed.data),revision);
     if(next===null)return res.status(409).json({error:'다른 탭이나 기기에서 보관함이 바뀌었어요. 최신 보관함을 불러온 뒤 다시 변경해주세요.'});
     res.json({revision:next});
   });
   app.post('/logout',(req,res)=>{store.logout(cookies(req)[sessionCookie]);res.clearCookie(sessionCookie,cookieOptions);res.json({ok:true});});
-  app.delete('/account',(req,res)=>{store.deleteUser(req.user.id);res.clearCookie(sessionCookie,cookieOptions);res.json({ok:true});});
+  app.delete('/account',(req,res)=>{if(store.hasPayments(req.user.id))return res.status(409).json({error:'테스트 결제 기록이 있어요. 관리자에게 테스트 주문과 계정 초기화를 요청해주세요.'});store.deleteUser(req.user.id);res.clearCookie(sessionCookie,cookieOptions);res.json({ok:true});});
   app.use((_req,res)=>res.status(404).json({error:'없는 요청이에요.'}));
   app.use((error,_req,res,_next)=>res.status(error.type==='entity.too.large'?413:error instanceof SyntaxError?400:500).json({error:'요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.'}));
   return {app,close:()=>store.close()};
