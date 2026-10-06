@@ -2,6 +2,7 @@
 // This also runs in Windows sandboxes that restrict native dependency prebundling.
 import { build, preview } from 'vite';
 import config from '../vite.config.js';
+import { accountApiPlugin } from '../server/plugin.js';
 const clients = new Set();
 let server, revision = 0, stopping = false;
 const reloadPlugin = {
@@ -24,7 +25,7 @@ watcher.on('event', async event => {
   revision++;
   if (!server) {
     try {
-      server = await preview({configFile:false,plugins:[reloadPlugin],build:{outDir:'.dev'},preview:{host:'127.0.0.1',port:5173,strictPort:true}});
+      server = await preview({configFile:false,plugins:[reloadPlugin,accountApiPlugin()],build:{outDir:'.dev'},preview:{host:'127.0.0.1',port:5173,strictPort:true}});
       console.log('\n몽글사주 개발 미리보기 · 파일 저장 시 자동 새로고침');
       server.printUrls();
     } catch(error) { console.error(error.message); await stop(1); }

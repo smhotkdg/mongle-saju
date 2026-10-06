@@ -1,0 +1,17 @@
+import React, { useState } from 'react';
+export { useAccountVault } from './useAccountVault.js';
+import './account.css';
+
+export function AccountPanel({vault}) {
+  const [confirm,setConfirm]=useState(null),[working,setWorking]=useState(false);
+  const user=vault.session?.user;
+  const authError=new URLSearchParams(location.search).get('auth_error');
+  const errors={cancelled:'로그인이 취소됐어요. 다시 선택해주세요.',invalid_state:'로그인 요청이 만료됐어요. 다시 시작해주세요.',not_configured:'이 로그인은 아직 준비 중이에요.',failed:'로그인을 완료하지 못했어요. 잠시 후 다시 시도해주세요.'};
+  async function perform(action){setWorking(true);try{await action();setConfirm(null);}finally{setWorking(false);}}
+  return <section className="account-panel" aria-label="계정 및 저장"><span className="account-eyebrow">MY MONGLE ACCOUNT</span><h2>{user?`${user.name}님의 몽글 보관함`:'내 행운을 어디서나'}</h2><p>{user?'보관한 운세와 실천 체크, 부적 도감을 계정에 자동 저장해요.':'로그인하면 다른 기기에서도 보관한 운세와 부적 도감을 이어볼 수 있어요.'}</p>
+    {authError&&<p role="alert" className="account-error">{errors[authError]||errors.failed}</p>}
+    {!user?<><div className="social-logins">{(vault.session?.providers||[]).map(provider=><button key={provider.id} type="button" className={`social-login ${provider.id}`} disabled={!provider.enabled} onClick={()=>location.assign(`/api/auth/${provider.id}`)}>{provider.label}로 계속하기{!provider.enabled&&<small>준비 중</small>}</button>)}</div><p className="account-note">로그인하면 서비스 식별번호와 표시 이름을 계정에 보관해요. 이메일·전화번호는 수집하지 않아요. 기존 비회원 보관함은 로그인 후 직접 가져올 수 있어요.</p><p className="account-note">카카오·네이버·Google은 각각 별도 계정이에요. 이전에 사용한 로그인 수단을 선택해주세요.</p></>:<><div className="account-identity">{vault.session.providers.find(p=>p.id===user.provider)?.label}로 로그인됨</div><p className="account-note">계정에는 최근 운세 20개와 부적 도감을 보관해요. 입력한 생년월일시는 업로드하지 않아요. 로그아웃하면 계정 보관함이 화면에서 사라져요.</p><div className="account-actions"><button className="button secondary" disabled={working||vault.hasPending} onClick={()=>setConfirm('import')}>이 브라우저의 운세 가져오기</button><button className="button secondary" disabled={working||vault.hasPending} onClick={()=>perform(vault.logout)}>로그아웃</button><button className="text-button" disabled={working||vault.hasPending} onClick={()=>setConfirm('delete')}>계정 및 보관 데이터 삭제</button></div></>}
+    <p className="account-status" role="status">{vault.status}</p>{vault.error&&<div className="account-error" role="alert"><p>{vault.error}</p>{user&&<div className="account-actions"><button className="button secondary" onClick={vault.retry}>저장 다시 시도</button><button className="button secondary" onClick={()=>setConfirm('reload')}>최신 보관함 불러오기</button><button className="text-button" onClick={()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(vault.data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='몽글사주-미저장-보관함.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>미저장 내용 파일로 보관</button></div>}</div>}
+    {confirm&&<div className="account-confirm" role="group" aria-label="변경 확인"><p>{confirm==='delete'?'계정과 서버에 보관한 운세·부적 도감을 모두 삭제할까요? 복구할 수 없어요. 소셜 서비스의 연결 동의와 이 브라우저의 비회원 보관함은 별도로 남아요.':confirm==='reload'?'저장하지 못한 현재 변경을 버리고 서버의 최신 보관함을 불러올까요? 필요하면 먼저 미저장 내용을 파일로 보관해주세요.':'비회원 운세와 부적 도감을 이 계정에 복사할까요? 계정에 이미 있는 운세를 우선하고 최근 20개까지만 보관해요.'}</p><div className="account-actions"><button className="button primary" disabled={working} onClick={()=>perform(confirm==='delete'?vault.deleteAccount:confirm==='reload'?vault.reload:vault.importLocal)}>확인</button><button className="button secondary" disabled={working} onClick={()=>setConfirm(null)}>취소</button></div></div>}
+  </section>;
+}
