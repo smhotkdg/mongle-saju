@@ -30,6 +30,15 @@ export function createStore(filename) {
     paidReport(userId,key) { return !!db.prepare("SELECT id FROM payment_orders WHERE user_id=? AND report_key=? AND status='paid'").get(userId,key); },
     updatePayment(id,from,to,paymentId=null) { return db.prepare('UPDATE payment_orders SET status=?,payment_id=COALESCE(?,payment_id) WHERE id=? AND status=?').run(to,paymentId,id,from).changes>0; },
     hasPayments(userId) { return !!db.prepare('SELECT id FROM payment_orders WHERE user_id=? LIMIT 1').get(userId); },
+    resetSandboxPayments(userId) {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const pending=db.prepare("SELECT id FROM payment_orders WHERE user_id=? AND status IN ('creating','ready','approving','review') LIMIT 1").get(userId);
+        if(pending){db.exec('ROLLBACK');return null;}
+        const result=db.prepare("UPDATE payment_orders SET status='sandbox_reset' WHERE user_id=? AND status='paid'").run(userId);
+        db.exec('COMMIT');return result.changes;
+      }catch(error){db.exec('ROLLBACK');throw error;}
+    },
     cleanup() { const now = Date.now(); db.prepare('DELETE FROM sessions WHERE expires <= ?').run(now); db.prepare('DELETE FROM oauth WHERE expires <= ?').run(now); },
     user(provider, subject, name) {
       db.prepare('INSERT INTO users VALUES(?,?,?,?) ON CONFLICT(provider,subject) DO UPDATE SET name=excluded.name').run(randomUUID(), provider, subject, name);

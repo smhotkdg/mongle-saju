@@ -10,12 +10,12 @@ import { emptyVault, resultSchema } from '../src/vault.js';
 const env={APP_ORIGIN:'http://127.0.0.1:5173',KAKAOPAY_SECRET_KEY_DEV:'test-secret',NAVERPAY_CLIENT_ID:'test-id',NAVERPAY_CLIENT_SECRET:'test-secret',NAVERPAY_CHAIN_ID:'test-chain'};
 const result=()=>makeFortune({name:'테스트',birth:'1995-03-12',time:'10:30',calendar:'solar',boundary:'midnight',unknown:false},'saju');
 function approval(o){return o.provider==='kakaopay'?{tid:o.payment_id,cid:'TC0ONETIME',partner_order_id:o.id,partner_user_id:o.user_id,amount:{total:990,tax_free:0},aid:'approval',approved_at:'2026-10-06T12:00:00'}:{code:'Success',body:{paymentId:o.payment_id,detail:{paymentId:o.payment_id,merchantPayKey:o.id,merchantUserKey:o.user_id,admissionTypeCode:'01',admissionState:'SUCCESS',totalPayAmount:990,taxScopeAmount:990,taxExScopeAmount:0}}};}
-async function harness(t,approve=async o=>approval(o)) {
+async function harness(t,approve=async o=>approval(o),envOverrides={}) {
   const store=createStore(':memory:'), callbacks=new Map();let calls=0;
-  const api=createApi({env,store,paymentGateway:{ready:async(o,url)=>{callbacks.set(o.id,new URL(url));return {paymentId:o.provider==='kakaopay'?'tid-test':null,checkout:{kind:'redirect',url:'https://mockup-pg-web.kakao.com/test'}};},approve:async(o,proof)=>{calls++;return approve(o,proof);}}});
+  const api=createApi({env:{...env,...envOverrides},store,paymentGateway:{ready:async(o,url)=>{callbacks.set(o.id,new URL(url));return {paymentId:o.provider==='kakaopay'?'tid-test':null,checkout:{kind:'redirect',url:'https://mockup-pg-web.kakao.com/test'}};},approve:async(o,proof)=>{calls++;return approve(o,proof);}}});
   const server=api.app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
   const request=(path,options={})=>fetch(`http://127.0.0.1:${server.address().port}${path}`,{redirect:'manual',...options});
-  function user(subject){const u=store.user('google',subject,'테스트'),s=store.createSession(u.id);return {...u,headers:{cookie:`mongle-session=${s.id}`,Origin:env.APP_ORIGIN,'X-CSRF-Token':s.csrf,'Content-Type':'application/json'}};}
+  function user(subject){const u=store.user('google',subject,'테스트'),s=store.createSession(u.id);return {...u,headers:{cookie:`${(envOverrides.APP_ORIGIN||env.APP_ORIGIN).startsWith('https:')?'__Host-mongle-session':'mongle-session'}=${s.id}`,Origin:envOverrides.APP_ORIGIN||env.APP_ORIGIN,'X-CSRF-Token':s.csrf,'Content-Type':'application/json'}};}
   const a=user('one'),b=user('two');
   const post=(path,body,who=a)=>request(path,{method:'POST',headers:who.headers,body:JSON.stringify(body)});
   async function order(provider='kakaopay',r=result()){const res=await post('/payments/orders',{provider,result:r,amount:1});assert.equal(res.status,200);return res.json();}
@@ -27,6 +27,31 @@ async function harness(t,approve=async o=>approval(o)) {
 test('payment configuration never reuses login keys or enables production charging',()=>{
   assert.ok(Object.values(paymentConfig({KAKAO_CLIENT_ID:'login',NAVER_CLIENT_ID:'login',NAVER_CLIENT_SECRET:'login'})).every(p=>!p.enabled));
   assert.ok(Object.values(paymentConfig({...env,PAYMENT_MODE:'production'})).every(p=>!p.enabled));
+});
+test('sandbox reset retains transactions, revokes only owner entitlement and permits a fresh checkout',async t=>{
+  const h=await harness(t,undefined,{NODE_ENV:'development'}),o=await h.order();await h.callback(o);
+  assert.equal((await h.request('/payments/reset-sandbox',{method:'POST',headers:{...h.a.headers,'X-CSRF-Token':'bad'},body:'{}'})).status,403);
+  assert.equal((await h.post('/payments/reset-sandbox',{},h.b)).status,200);
+  assert.equal(h.store.payment(o.id).status,'paid');
+  const response=await h.post('/payments/reset-sandbox',{});assert.equal(response.status,200);
+  const data=await response.json();assert.equal(data.count,1);assert.equal(data.orders[0].status,'sandbox_reset');
+  assert.equal(h.store.payment(o.id).payment_id,'tid-test');assert.equal(h.store.paidReport(h.a.id,reportKey(result())),false);
+  await h.callback(o);assert.equal(h.calls(),1);assert.equal(h.store.payment(o.id).status,'sandbox_reset');
+  assert.equal((await(await h.post('/payments/reset-sandbox',{})).json()).count,0);
+  const next=await h.order();assert.notEqual(next.id,o.id);await h.callback(next);assert.equal(h.store.paidReport(h.a.id,reportKey(result())),true);
+});
+test('sandbox reset blocks pending/review orders and is unavailable outside local sandbox development',async t=>{
+  const h=await harness(t,undefined,{NODE_ENV:'development'}),o=await h.order();
+  for(const status of ['ready','approving','review','creating']){
+    const current=h.store.payment(o.id).status;h.store.updatePayment(o.id,current,status);
+    assert.equal((await h.post('/payments/reset-sandbox',{})).status,409);
+    assert.equal(h.store.payment(o.id).status,status);
+  }
+  for(const settings of [{},{NODE_ENV:'development',PAYMENT_MODE:'production'},{NODE_ENV:'development',APP_ORIGIN:'https://example.com'}]){
+    const other=await harness(t,undefined,settings);
+    const config=await(await other.request('/payments/config',{headers:other.a.headers})).json();assert.equal(config.canResetSandbox,false);
+    assert.equal((await other.post('/payments/reset-sandbox',{})).status,403);
+  }
 });
 test('both gateways approve exactly once, isolate users and retain purchased snapshot',async t=>{
   for(const provider of ['kakaopay','naverpay'])await t.test(provider,async t=>{

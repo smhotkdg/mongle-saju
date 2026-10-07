@@ -11,9 +11,16 @@ export function reportKey(result) {
 }
 export function paymentRoutes({env,store,origin,gateway}) {
   const router=Router(), config=paymentConfig(env), pay=gateway||createPaymentGateway(config);
+  const canResetSandbox=env.NODE_ENV==='development' && ['127.0.0.1','localhost','[::1]'].includes(new URL(origin).hostname) && (!env.PAYMENT_MODE || env.PAYMENT_MODE==='sandbox');
   const publicOrder=o=>({id:o.id,provider:o.provider,amount:o.amount,status:o.status,createdAt:o.created_at,mode:'sandbox',...(o.status==='paid'?{result:{...JSON.parse(o.result),unlocked:true}}:{})});
-  router.get('/config',(_req,res)=>res.json({mode:'sandbox',amount:990,providers:Object.entries(config).map(([id,p])=>({id,label:p.label,enabled:p.enabled}))}));
+  router.get('/config',(_req,res)=>res.json({mode:'sandbox',canResetSandbox,amount:990,providers:Object.entries(config).map(([id,p])=>({id,label:p.label,enabled:p.enabled}))}));
   router.get('/orders',(req,res)=>res.json({orders:store.paymentOrders(req.user.id).map(publicOrder)}));
+  router.post('/reset-sandbox',(req,res)=>{
+    if(!canResetSandbox)return res.status(403).json({error:'로컬 개발용 샌드박스에서만 초기화할 수 있어요.'});
+    const count=store.resetSandboxPayments(req.user.id);
+    if(count===null)return res.status(409).json({error:'진행 중이거나 확인이 필요한 주문이 있어요. 결제 내역에서 승인 전 주문을 취소하고, 승인 중·확인 필요 주문은 결제사 상태를 먼저 확인해주세요.'});
+    res.json({count,orders:store.paymentOrders(req.user.id).map(publicOrder)});
+  });
   router.post('/orders',async(req,res)=>{
     const parsed=resultSchema.safeParse(req.body?.result), provider=req.body?.provider;
     if(!Object.hasOwn(config,provider||'') || !config[provider].enabled)return res.status(400).json({error:'결제용 테스트 가맹점 설정이 필요해요.'});
