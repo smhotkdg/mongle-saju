@@ -21,7 +21,9 @@ export function createApi({ env=process.env, store=createStore(resolve(env.DATA_
   app.use((req,res,next)=>{res.set({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});store.cleanup();next();});
   app.use(rateLimit({windowMs:60000,limit:240,standardHeaders:'draft-8',legacyHeaders:false,message:{error:'요청이 많아요. 잠시 후 다시 시도해주세요.'}}));
   app.use(express.json({limit:'512kb'}));
-  app.get('/health',(_req,res)=>res.json({ok:true}));
+  // Local simulations never call a payment provider or create purchase records.
+  const localPaymentMock=env.NODE_ENV==='development' && ['127.0.0.1','localhost','[::1]'].includes(new URL(origin).hostname) && env.PAYMENT_LOCAL_MOCK!=='false';
+  app.get('/health',(_req,res)=>res.json({ok:true,localPaymentMock}));
   app.get('/session',(req,res)=>{
     const user = store.session(cookies(req)[sessionCookie]);
     res.json({user:user?{id:user.id,name:user.name,provider:user.provider}:null,csrf:user?.csrf||null,providers:Object.entries(providers).map(([id,p])=>({id,label:p.label,enabled:p.enabled}))});
