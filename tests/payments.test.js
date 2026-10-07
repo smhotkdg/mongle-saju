@@ -7,26 +7,48 @@ import { reportKey } from '../server/payments.js';
 import { makeFortune } from '../src/fortune.js';
 import { emptyVault, resultSchema } from '../src/vault.js';
 
-const env={APP_ORIGIN:'http://127.0.0.1:5173',KAKAOPAY_SECRET_KEY_DEV:'test-secret',NAVERPAY_CLIENT_ID:'test-id',NAVERPAY_CLIENT_SECRET:'test-secret',NAVERPAY_CHAIN_ID:'test-chain'};
+const env={TOSSPAY_API_KEY_TEST:'sk_test_fixture',APP_ORIGIN:'http://127.0.0.1:5173',KAKAOPAY_SECRET_KEY_DEV:'test-secret',NAVERPAY_CLIENT_ID:'test-id',NAVERPAY_CLIENT_SECRET:'test-secret',NAVERPAY_CHAIN_ID:'test-chain'};
 const result=()=>makeFortune({name:'테스트',birth:'1995-03-12',time:'10:30',calendar:'solar',boundary:'midnight',unknown:false},'saju');
-function approval(o){return o.provider==='kakaopay'?{tid:o.payment_id,cid:'TC0ONETIME',partner_order_id:o.id,partner_user_id:o.user_id,amount:{total:990,tax_free:0},aid:'approval',approved_at:'2026-10-06T12:00:00'}:{code:'Success',body:{paymentId:o.payment_id,detail:{paymentId:o.payment_id,merchantPayKey:o.id,merchantUserKey:o.user_id,admissionTypeCode:'01',admissionState:'SUCCESS',totalPayAmount:990,taxScopeAmount:990,taxExScopeAmount:0}}};}
+function approval(o){if(o.provider==='tosspay')return {code:0,mode:'TEST',orderNo:o.id,payToken:o.payment_id,amount:990,transactionId:'test-transaction',approvalTime:'2026-10-07 12:00:00'};return o.provider==='kakaopay'?{tid:o.payment_id,cid:'TC0ONETIME',partner_order_id:o.id,partner_user_id:o.user_id,amount:{total:990,tax_free:0},aid:'approval',approved_at:'2026-10-06T12:00:00'}:{code:'Success',body:{paymentId:o.payment_id,detail:{paymentId:o.payment_id,merchantPayKey:o.id,merchantUserKey:o.user_id,admissionTypeCode:'01',admissionState:'SUCCESS',totalPayAmount:990,taxScopeAmount:990,taxExScopeAmount:0}}};}
 async function harness(t,approve=async o=>approval(o),envOverrides={}) {
   const store=createStore(':memory:'), callbacks=new Map();let calls=0;
-  const api=createApi({env:{...env,...envOverrides},store,paymentGateway:{ready:async(o,url)=>{callbacks.set(o.id,new URL(url));return {paymentId:o.provider==='kakaopay'?'tid-test':null,checkout:{kind:'redirect',url:'https://mockup-pg-web.kakao.com/test'}};},approve:async(o,proof)=>{calls++;return approve(o,proof);}}});
+  const api=createApi({env:{...env,...envOverrides},store,paymentGateway:{ready:async(o,url)=>{callbacks.set(o.id,new URL(url));return {paymentId:o.provider==='naverpay'?null:'tid-test',checkout:{kind:'redirect',url:'https://mockup-pg-web.kakao.com/test'}};},approve:async(o,proof)=>{calls++;return approve(o,proof);}}});
   const server=api.app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
   const request=(path,options={})=>fetch(`http://127.0.0.1:${server.address().port}${path}`,{redirect:'manual',...options});
   function user(subject){const u=store.user('google',subject,'테스트'),s=store.createSession(u.id);return {...u,headers:{cookie:`${(envOverrides.APP_ORIGIN||env.APP_ORIGIN).startsWith('https:')?'__Host-mongle-session':'mongle-session'}=${s.id}`,Origin:envOverrides.APP_ORIGIN||env.APP_ORIGIN,'X-CSRF-Token':s.csrf,'Content-Type':'application/json'}};}
   const a=user('one'),b=user('two');
   const post=(path,body,who=a)=>request(path,{method:'POST',headers:who.headers,body:JSON.stringify(body)});
   async function order(provider='kakaopay',r=result()){const res=await post('/payments/orders',{provider,result:r,amount:1});assert.equal(res.status,200);return res.json();}
-  function callback(o,who=a,query={}){const u=new URL(callbacks.get(o.id));u.searchParams.set('pg_token','proof');u.searchParams.set('resultCode','Success');u.searchParams.set('paymentId','naver-payment');for(const [k,v]of Object.entries(query))u.searchParams.set(k,v);return request(u.pathname.replace('/api','')+u.search,{headers:who.headers});}
+  function callback(o,who=a,query={}){const u=new URL(callbacks.get(o.id));u.searchParams.set('status','PAY_APPROVED');u.searchParams.set('orderNo',o.id);u.searchParams.set('pg_token','proof');u.searchParams.set('resultCode','Success');u.searchParams.set('paymentId','naver-payment');for(const [k,v]of Object.entries(query))u.searchParams.set(k,v);return request(u.pathname.replace('/api','')+u.search,{headers:who.headers});}
   t.after(async()=>{await new Promise(r=>server.close(r));store.close();});
   return {store,request,post,order,callback,a,b,calls:()=>calls};
 }
 
 test('payment configuration never reuses login keys or enables production charging',()=>{
+  assert.equal(paymentConfig({TOSSPAY_API_KEY_TEST:'sk_live_wrong'}).tosspay.enabled,false);
   assert.ok(Object.values(paymentConfig({KAKAO_CLIENT_ID:'login',NAVER_CLIENT_ID:'login',NAVER_CLIENT_SECRET:'login'})).every(p=>!p.enabled));
   assert.ok(Object.values(paymentConfig({...env,PAYMENT_MODE:'production'})).every(p=>!p.enabled));
+});
+test('Toss Pay validates authentication return before executing stored payment token',async t=>{
+  const h=await harness(t),o=await h.order('tosspay');
+  assert.equal((await h.callback(o,h.a,{orderNo:'another-order'})).status,400);
+  assert.equal((await h.callback(o,h.a,{status:'PAY_COMPLETE'})).status,400);
+  assert.equal(h.calls(),0);
+  await h.callback(o);assert.equal(h.calls(),1);assert.equal(h.store.payment(o.id).status,'paid');
+});
+test('Toss Pay mismatched approval never grants entitlement',async t=>{
+  const h=await harness(t,async o=>({...approval(o),mode:'LIVE'})),o=await h.order('tosspay');
+  await h.callback(o);assert.equal(h.store.payment(o.id).status,'review');assert.equal(h.store.paidReport(h.a.id,reportKey(result())),false);
+});
+test('Toss Pay uses server-only test key and manual approval with validated checkout URL',async()=>{
+  const calls=[],config=paymentConfig(env),o={id:'test-order',user_id:'user',provider:'tosspay',amount:990,payment_id:'pay-token'};
+  const gateway=createPaymentGateway(config,async(url,init)=>{calls.push({url,body:JSON.parse(init.body)});return new Response(JSON.stringify(url.endsWith('/payments')?{code:0,payToken:'pay-token',checkoutPage:'https://pay.toss.im/pay/test'}:approval(o)),{status:200});});
+  const ready=await gateway.ready(o,'http://127.0.0.1:5173/api/payments/return/test-order?state=test');
+  assert.equal(ready.paymentId,'pay-token');assert.equal(calls[0].url,'https://pay.toss.im/api/v2/payments');assert.equal(calls[0].body.autoExecute,false);assert.equal(calls[0].body.amountTaxFree,0);assert.equal(calls[0].body.apiKey,env.TOSSPAY_API_KEY_TEST);assert.ok(!JSON.stringify(ready).includes(env.TOSSPAY_API_KEY_TEST));
+  const approved=await gateway.approve(o,'untrusted-query-value');assert.equal(calls[1].url,'https://pay.toss.im/api/v2/execute');assert.equal(calls[1].body.payToken,'pay-token');assert.equal(validApproval(o,approved,config),true);
+  for(const field of ['code','mode','orderNo','payToken','amount','transactionId','approvalTime'])assert.equal(validApproval(o,{...approved,[field]:null},config),false,field);
+  const bad=createPaymentGateway(config,async()=>new Response(JSON.stringify({code:0,payToken:'token',checkoutPage:'https://pay.toss.im.evil.example/pay'})));
+  await assert.rejects(()=>bad.ready(o,'https://example.com/return'));
 });
 test('sandbox reset retains transactions, revokes only owner entitlement and permits a fresh checkout',async t=>{
   const h=await harness(t,undefined,{NODE_ENV:'development'}),o=await h.order();await h.callback(o);
@@ -53,8 +75,8 @@ test('sandbox reset blocks pending/review orders and is unavailable outside loca
     assert.equal((await other.post('/payments/reset-sandbox',{})).status,403);
   }
 });
-test('both gateways approve exactly once, isolate users and retain purchased snapshot',async t=>{
-  for(const provider of ['kakaopay','naverpay'])await t.test(provider,async t=>{
+test('all gateways approve exactly once, isolate users and retain purchased snapshot',async t=>{
+  for(const provider of ['kakaopay','naverpay','tosspay'])await t.test(provider,async t=>{
     const h=await harness(t),r=result(),o=await h.order(provider,r);
     assert.equal(h.store.payment(o.id).amount,990);
     assert.equal((await h.callback(o,h.b)).status,403);

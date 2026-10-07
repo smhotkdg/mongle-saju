@@ -1,7 +1,7 @@
 import { reportIdentity } from './paymentModel.js';
 
 export function simulatePayment(result,provider,outcome) {
-  if(!['kakaopay','naverpay'].includes(provider)||!['paid','cancelled','failed'].includes(outcome)||!reportIdentity(result))throw new Error('Invalid simulation');
+  if(!['kakaopay','naverpay','tosspay'].includes(provider)||!['paid','cancelled','failed'].includes(outcome)||!reportIdentity(result))throw new Error('Invalid simulation');
   return {id:`local-${crypto.randomUUID()}`,provider,amount:990,status:outcome,createdAt:Date.now(),mode:'local-mock',result};
 }
 export function mockOwns(orders,result) {

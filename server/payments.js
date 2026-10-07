@@ -43,7 +43,8 @@ export function paymentRoutes({env,store,origin,gateway}) {
     const back=()=>res.redirect(`${origin}/?payment_order=${order.id}#payments`);
     if(order.status!=='ready')return back();
     if(req.query.cancel==='1' || (order.provider==='naverpay' && String(req.query.resultCode).toLowerCase()!=='success')){store.updatePayment(order.id,'ready','cancelled');return back();}
-    const proof=order.provider==='kakaopay'?req.query.pg_token:req.query.paymentId;
+    if(order.provider==='tosspay' && (req.query.status!=='PAY_APPROVED'||req.query.orderNo!==order.id))return res.status(400).send('토스페이 인증 결과가 주문과 일치하지 않습니다. 결제 내역을 확인해주세요.');
+    const proof=order.provider==='kakaopay'?req.query.pg_token:order.provider==='tosspay'?order.payment_id:req.query.paymentId;
     if(typeof proof!=='string'||!proof||proof.length>2048)return res.status(400).send('결제 인증 정보가 없습니다. 결제 내역에서 상태를 확인해주세요.');
     if(Date.now()-order.created_at>30*60000){store.updatePayment(order.id,'ready','cancelled');return back();}
     if(!store.updatePayment(order.id,'ready','approving',order.provider==='naverpay'?proof:order.payment_id))return back();

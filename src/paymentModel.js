@@ -1,4 +1,7 @@
 import { resultSchema } from './vault.js';
+export const paymentProviders=[{id:'kakaopay',label:'카카오페이',className:'kakao'},{id:'naverpay',label:'네이버페이',className:'naver'},{id:'tosspay',label:'토스페이',className:'toss'}];
+export const paymentLabel=id=>paymentProviders.find(p=>p.id===id)?.label||id;
+export const paymentClass=id=>paymentProviders.find(p=>p.id===id)?.className||'';
 
 export function reportIdentity(value) {
   const parsed=resultSchema.safeParse(value);

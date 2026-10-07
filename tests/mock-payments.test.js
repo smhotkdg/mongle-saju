@@ -8,7 +8,7 @@ import { makeFortune } from '../src/fortune.js';
 test('local simulations grant only the exact approved report without modifying it',()=>{
   const result=makeFortune({name:'테스트',birth:'1995-03-12',time:'10:30',calendar:'solar',boundary:'midnight',unknown:false},'saju');
   const before=JSON.stringify(result);
-  for(const provider of ['kakaopay','naverpay']){
+  for(const provider of ['kakaopay','naverpay','tosspay']){
     for(const outcome of ['cancelled','failed'])assert.equal(mockOwns([simulatePayment(result,provider,outcome)],result),false);
     const approved=simulatePayment(result,provider,'paid');
     assert.equal(mockOwns([approved],result),true);
